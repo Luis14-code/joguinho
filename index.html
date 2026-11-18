@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MARS-OPS — Comando de Frota Autônoma</title>
+<meta name="description" content="Simulador de missões com frota autônoma em Marte — Integração de Sistemas na Indústria, UFSM.">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/screens.css">
+<link rel="stylesheet" href="css/scene.css">
+</head>
+<body>
+
+<!-- =============================================================
+     CABEÇALHO: identificação da matéria + logo + relógio da rodada
+     ============================================================= -->
+<header class="top-header">
+  <div class="breadcrumb">
+    UFSM <span class="sep">//</span>
+    Engenharia de Produção <span class="sep">//</span>
+    Integração de Sistemas na Indústria <span class="sep">//</span>
+    Robôs Autônomos
+  </div>
+  <div class="logo-row">
+    <div class="logo-title">MARS-OPS</div>
+    <div class="logo-sub">Comando de Frota Autônoma · Simulador de Missões</div>
+    <div class="round-clock" id="round-clock"></div>
+  </div>
+</header>
+
+<main>
+
+<!-- =============================================================
+     TELA 1 — REGISTRO DO GRUPO
+     ============================================================= -->
+<section id="screen-start" class="screen active">
+  <div class="start-card">
+    <h2>Registro de Equipe</h2>
+    <p class="lead">Antes de receber a missão, identifique seu grupo. Este nome aparece no debrief e no ranking da turma — escreva exatamente o mesmo nome em todas as tentativas.</p>
+
+    <div class="field">
+      <label for="group-name">Nome do grupo</label>
+      <input id="group-name" type="text" placeholder="Ex: Esquadrão Ares" maxlength="60" autocomplete="off">
+      <div class="hint error" id="group-error" hidden></div>
+    </div>
+
+    <div class="field">
+      <label for="group-members">Integrantes</label>
+      <textarea id="group-members" placeholder="Um nome por linha ou separados por vírgula" maxlength="500"></textarea>
+      <div class="hint">Fica salvo apenas neste navegador e é enviado junto da pontuação para o ranking da turma.</div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn mars" id="btn-start">Autorizar Equipe →</button>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     TELA 2 — SELEÇÃO DE MISSÃO
+     ============================================================= -->
+<section id="screen-missions" class="screen">
+  <div class="screen-title">// Comando Central · Catálogo de Missões</div>
+  <h1 class="screen-heading">Selecione uma Missão</h1>
+  <p class="screen-lead">
+    Cada missão simula um tipo diferente de operação com frota autônoma em Marte. Você recebe um briefing com objetivos e riscos declarados, monta sua frota dentro de um orçamento, e assiste à execução. Depois analisa o resultado — e a pontuação entra no ranking da rodada.
+  </p>
+  <div class="missions-grid" id="missions-grid"></div>
+  <div class="action-bar" style="margin-top: 24px;">
+    <button class="btn ghost" id="btn-change-group">← Trocar equipe</button>
+  </div>
+</section>
+
+<!-- =============================================================
+     TELA 3 — BRIEFING
+     ============================================================= -->
+<section id="screen-briefing" class="screen">
+  <div class="screen-title">// Briefing · <span id="briefing-crumb"></span></div>
+  <h1 class="screen-heading" id="briefing-title"></h1>
+
+  <div class="briefing-grid">
+    <div class="panel">
+      <h3>Narrativa da Missão</h3>
+      <div class="narrative" id="briefing-narrative"></div>
+      <div class="hint-box" id="briefing-hint"></div>
+    </div>
+
+    <div>
+      <div class="panel" style="margin-bottom: 20px;">
+        <h3>Ficha Técnica</h3>
+        <ul class="spec-list" id="briefing-specs"></ul>
+      </div>
+
+      <div class="panel">
+        <h3>Riscos Declarados</h3>
+        <div id="briefing-risks"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn ghost" id="btn-back-to-missions">← Trocar missão</button>
+    <button class="btn mars" id="btn-to-planning">Iniciar Planejamento →</button>
+  </div>
+</section>
+
+<!-- =============================================================
+     TELA 4 — PLANEJAMENTO
+     ============================================================= -->
+<section id="screen-planning" class="screen">
+  <div class="screen-title">// Planejamento · <span id="planning-crumb"></span></div>
+  <h1 class="screen-heading">Monte sua Operação</h1>
+
+  <div class="planning-wrap">
+    <div>
+      <div class="tabs">
+        <button class="tab active" data-tab="frota">Frota</button>
+        <button class="tab" data-tab="modulos">Sensores &amp; Módulos</button>
+        <button class="tab" data-tab="infra">Infraestrutura</button>
+        <button class="tab" data-tab="integracao">Integração</button>
+      </div>
+
+      <div class="tab-content active" id="tab-frota">
+        <div class="catalog-grid" id="cat-robots"></div>
+      </div>
+      <div class="tab-content" id="tab-modulos">
+        <div class="catalog-grid" id="cat-modules"></div>
+      </div>
+      <div class="tab-content" id="tab-infra">
+        <div class="catalog-grid" id="cat-infra"></div>
+      </div>
+      <div class="tab-content" id="tab-integracao">
+        <p class="tab-lead">
+          Módulos do Centro de Controle. Cada integração ativa reduz riscos específicos da missão. Veja os riscos no briefing.
+        </p>
+        <div class="catalog-grid" id="cat-integration"></div>
+      </div>
+    </div>
+
+    <aside class="budget-side">
+      <h3>Orçamento</h3>
+      <div class="budget-bar-wrap">
+        <div class="budget-bar" id="budget-bar"></div>
+      </div>
+      <div class="budget-nums">
+        <span><span class="used" id="budget-used">0</span> / <span class="total" id="budget-total">1000</span> créditos</span>
+        <span class="free" id="budget-free">1000 livre</span>
+      </div>
+
+      <div id="budget-alerts"></div>
+
+      <ul class="summary-list" id="budget-summary"></ul>
+
+      <div class="side-actions">
+        <button class="btn mars" id="btn-launch">Lançar Missão 🚀</button>
+        <button class="btn ghost" id="btn-back-to-briefing">← Voltar ao briefing</button>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- =============================================================
+     TELA 5 — SIMULAÇÃO
+     ============================================================= -->
+<section id="screen-simulation" class="screen">
+  <div class="screen-title">// Execução em Tempo Real · <span id="sim-crumb"></span></div>
+  <h1 class="screen-heading">Missão em Andamento</h1>
+
+  <div class="sim-wrap">
+    <div class="scene-col">
+      <div class="scene-wrap">
+        <svg class="scene-svg" id="scene-svg" viewBox="0 170 900 350" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2b1510"/>
+              <stop offset="60%" stop-color="#3d2017"/>
+              <stop offset="100%" stop-color="#5a3122"/>
+            </linearGradient>
+            <pattern id="scanPattern" width="4" height="4" patternUnits="userSpaceOnUse">
+              <rect width="4" height="2" fill="#9fd8ef" opacity="0.25"/>
+            </pattern>
+          </defs>
+          <g class="terrain-layer" id="terrain-layer"></g>
+          <g class="robot-layer" id="robot-layer"></g>
+          <g class="fx-layer" id="fx-layer"></g>
+          <g class="overlay-layer" id="overlay-layer"></g>
+          <g class="hud-layer" id="hud-layer"></g>
+        </svg>
+      </div>
+
+      <div class="player">
+        <button class="pbtn" id="pb-play" title="Pausar / Retomar">⏸</button>
+        <button class="pbtn" id="pb-speed" title="Velocidade">1×</button>
+        <input class="seek" id="pb-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Linha do tempo">
+        <span class="ptime" id="pb-time">T+000s</span>
+        <button class="pbtn" id="pb-replay" title="Repetir a última cena">🔁</button>
+        <button class="pbtn" id="pb-skip" title="Pular para o relatório">⏭</button>
+      </div>
+    </div>
+
+    <div class="event-log">
+      <h3>Log de Eventos</h3>
+      <div id="event-list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     TELA 6 — DEBRIEF
+     ============================================================= -->
+<section id="screen-debrief" class="screen">
+  <div class="screen-title">// Relatório Final · <span id="debrief-crumb"></span></div>
+
+  <div class="verdict" id="verdict-box">
+    <div class="v-label">Resultado</div>
+    <div class="v-text" id="verdict-text"></div>
+    <div class="v-group" id="verdict-group"></div>
+  </div>
+
+  <div class="metrics-grid" id="metrics-grid"></div>
+
+  <div class="score-panel" id="score-panel"></div>
+
+  <div class="audit-panel" id="audit-panel"></div>
+
+  <div class="debrief-narrative" id="debrief-narrative"></div>
+
+  <div class="events-summary">
+    <h3>Eventos Registrados</h3>
+    <div id="debrief-events"></div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn ghost" id="btn-new-mission">← Nova Missão</button>
+    <button class="btn ghost" id="btn-retry-mission">↻ Refazer esta missão</button>
+    <button class="btn" id="btn-print">🖨 Imprimir Relatório</button>
+  </div>
+</section>
+
+</main>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

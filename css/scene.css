@@ -1,0 +1,293 @@
+/* ============================================================================
+   CENA DE SIMULAÇÃO — robôs vetoriais, terreno, efeitos, HUD e player
+   ----------------------------------------------------------------------------
+   Regra de performance: só transform e opacity são animados.
+   A variável --spd carrega a velocidade do player (1, 2 ou 4) para que os
+   loops em CSS acelerem junto com o relógio virtual.
+   ========================================================================== */
+
+.sim-wrap {
+  display: grid;
+  grid-template-columns: 1.65fr 1fr;
+  gap: 20px;
+  margin-top: 20px;
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .sim-wrap { grid-template-columns: 1fr; }
+}
+
+.scene-wrap {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+}
+.scene-svg {
+  width: 100%;
+  display: block;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: #0b0705;
+  --spd: 1;
+}
+.scene-svg.paused * { animation-play-state: paused !important; }
+
+/* ---------- Player de controles ---------- */
+.player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.pbtn {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 36px;
+}
+.pbtn:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+.pbtn.active {
+  background: var(--accent-cyan);
+  color: var(--bg-deep);
+  border-color: var(--accent-cyan);
+  font-weight: 700;
+}
+.ptime {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 62px;
+  text-align: center;
+}
+.seek {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  cursor: pointer;
+  border: none;
+}
+.seek::-moz-range-thumb {
+  width: 13px; height: 13px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  cursor: pointer;
+}
+
+/* ============================================================
+   ROBÔS
+   Cada robô: <g class="robot"> posiciona, <g class="rb-in"> anima local
+   ============================================================ */
+.robot { --rc: #00d4ff; }
+.robot .body { fill: #243445; stroke: var(--rc); stroke-width: 1.3; }
+.robot .body-dark { fill: #1a2633; stroke: #3d5468; stroke-width: 1; }
+.robot .stripe { fill: var(--rc); opacity: 0.9; }
+.robot .wheel { fill: #10171f; stroke: #5d7a88; stroke-width: 1.1; }
+.robot .wheel-hub { fill: #44606f; }
+.robot .track { fill: #141b23; stroke: #4a6272; stroke-width: 1.2; }
+.robot .headlight { fill: #ffe9a8; opacity: 0.9; }
+.robot .label {
+  fill: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  text-anchor: middle;
+}
+.robot .status-led { fill: #3ddc84; }
+.robot .batt-shell { fill: #0d1319; stroke: #3d5468; stroke-width: 0.8; }
+.robot .batt-fill { fill: #3ddc84; transform-origin: left center; }
+.robot .turret-base { fill: #2d4254; stroke: var(--rc); stroke-width: 1; }
+.robot .eye { fill: #ff6b35; }
+.robot .arm-segment-1,
+.robot .arm-segment-2 { fill: #35485c; stroke: #ffd166; stroke-width: 1; }
+.robot .finger { stroke: #ffd166; stroke-width: 1.6; fill: none; stroke-linecap: round; }
+.robot .payload { opacity: 0; }
+.robot.carrying .payload { opacity: 1; }
+
+/* rodas girando enquanto o robô se desloca */
+@keyframes rb-spin { to { transform: rotate(360deg); } }
+.robot.moving .wheel,
+.robot.moving .wheel-hub {
+  animation: rb-spin calc(0.62s / var(--spd, 1)) linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* patinando: gira muito rápido sem sair do lugar */
+.robot.spin-free .wheel,
+.robot.spin-free .wheel-hub {
+  animation: rb-spin calc(0.13s / var(--spd, 1)) linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* tremor após impacto */
+@keyframes rb-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(1.6px, -1.1px); }
+  45% { transform: translate(-1.7px, 0.9px); }
+  70% { transform: translate(1.2px, 1.2px); }
+}
+.robot.shaking .rb-in { animation: rb-shake calc(0.1s / var(--spd, 1)) linear 14; }
+
+/* estados de avaria */
+.robot.is-warn .status-led { fill: #ffb547; }
+@keyframes rb-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.12; } }
+.robot.is-dead .status-led { fill: #ff5370; animation: rb-blink calc(0.55s / var(--spd, 1)) step-end infinite; }
+.robot.is-dead .body { fill: #3a2029; stroke: #ff5370; }
+.robot.is-dead .stripe { fill: #ff5370; opacity: 0.6; }
+.robot.is-dead { opacity: 0.85; }
+.robot.is-dead .headlight { opacity: 0.15; }
+.robot.vanished { opacity: 0; transition: opacity 0.6s; }
+
+/* AGV sem trilha: nem liga os motores. Nenhuma animação, farol apagado. */
+.robot.is-frozen .status-led { fill: #ffb547; animation: rb-blink calc(1.1s / var(--spd, 1)) step-end infinite; }
+.robot.is-frozen .headlight { opacity: 0.1; }
+.robot.is-frozen .body { fill: #222b33; stroke: #5a6e82; }
+.robot.is-frozen .stripe { fill: #5a6e82; opacity: 0.5; }
+.robot.is-frozen .wheel,
+.robot.is-frozen .wheel-hub { animation: none !important; }
+.robot.is-frozen { opacity: 0.9; }
+
+/* telemetria perdida: some o rótulo */
+.scene-svg.commloss .robot .label { opacity: 0; }
+
+/* ============================================================
+   TERRENO
+   ============================================================ */
+.terrain-layer .ground { fill: #241410; }
+.terrain-layer .ground-far { fill: #2e1a13; }
+.terrain-layer .sky { fill: url(#skyGrad); }
+.terrain-layer .rock { fill: #35211a; stroke: #4a2e23; stroke-width: 1; }
+.terrain-layer .rail { stroke: #7f8fa0; stroke-width: 1.6; stroke-dasharray: 9 7; opacity: 0.75; }
+.terrain-layer .corridor { fill: #1d1512; stroke: #3b2a22; stroke-width: 1; }
+.terrain-layer .struct { fill: #1b2733; stroke: #44627a; stroke-width: 1.4; }
+.terrain-layer .struct-lit { fill: #233242; stroke: #00d4ff; stroke-width: 1.2; }
+.terrain-layer .shelf { fill: #182430; stroke: #3d5468; stroke-width: 1; }
+.terrain-layer .slot { fill: none; stroke: #4a6a80; stroke-width: 1.3; stroke-dasharray: 5 4; }
+.terrain-layer .slot.filled { fill: #2a4458; stroke: #3ddc84; stroke-dasharray: none; }
+.terrain-layer .grid-line { stroke: #3a2c25; stroke-width: 0.6; }
+.terrain-layer .hatch { stroke: #4a2e23; stroke-width: 0.8; opacity: 0.6; }
+.terrain-layer .label-txt { font-family: var(--font-mono); font-size: 10px; text-anchor: middle; }
+.terrain-layer .pit { fill: #1a0f0b; stroke: #4a2e23; stroke-width: 1.5; }
+
+/* névoa do SAR */
+@keyframes fog-drift {
+  from { transform: translateX(-60px); }
+  to { transform: translateX(60px); }
+}
+.terrain-layer .fog {
+  fill: #6b5a52;
+  opacity: 0.12;
+  animation: fog-drift calc(14s / var(--spd, 1)) ease-in-out infinite alternate;
+}
+.terrain-layer .fog.f2 { animation-duration: calc(21s / var(--spd, 1)); opacity: 0.09; }
+
+/* base "apagada" durante blackout */
+.terrain-layer .struct.offline,
+.terrain-layer .struct-lit.offline { stroke: #5a6e82; filter: saturate(0.1) brightness(0.6); }
+
+/* ============================================================
+   CAMADA DE EFEITOS
+   ============================================================ */
+.fx-layer .spark { stroke: #ffd166; stroke-width: 1.6; stroke-linecap: round; }
+.fx-layer .dust { fill: #8a6f5e; }
+.fx-layer .fx-icon { font-size: 15px; text-anchor: middle; dominant-baseline: middle; }
+.fx-layer .fx-q {
+  fill: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+.fx-layer .fx-coin {
+  fill: #ffd166;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+.fx-layer .ring { fill: none; stroke-width: 2; }
+.fx-layer .kinetic { stroke: #cfe6f2; stroke-width: 1.2; opacity: 0.6; stroke-linecap: round; }
+.fx-layer .cable { stroke: #c9b08a; stroke-width: 2.2; fill: none; stroke-linecap: round; }
+.fx-layer .commline { stroke: #00d4ff; stroke-width: 1.2; stroke-dasharray: 4 4; fill: none; }
+
+/* ============================================================
+   OVERLAY (blackout / tom avermelhado)
+   ============================================================ */
+.overlay-layer .scanlines { fill: url(#scanPattern); opacity: 0; }
+.overlay-layer .scanlines.on { opacity: 0.55; }
+.overlay-layer .redwash { fill: #ff3b30; opacity: 0; }
+.overlay-layer .redwash.on { opacity: 0.1; transition: opacity 0.8s; }
+.overlay-layer .offline-badge { opacity: 0; }
+.overlay-layer .offline-badge.on { opacity: 1; }
+
+/* ============================================================
+   HUD
+   ============================================================ */
+.hud-layer .hud-panel { fill: rgba(8, 14, 22, 0.82); stroke: #2c4154; stroke-width: 1; }
+.hud-layer .hud-label { fill: #8ea3b8; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; }
+.hud-layer .hud-value { fill: #e8eef5; font-family: var(--font-mono); font-size: 14px; font-weight: 700; }
+.hud-layer .hud-bar-bg { fill: #0d141c; stroke: #2c4154; stroke-width: 0.8; }
+.hud-layer .hud-bar-fill { fill: #00d4ff; transform-origin: left center; }
+.hud-layer .hud-clock { fill: #00d4ff; font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+.hud-layer .hud-comm { font-size: 13px; text-anchor: middle; }
+.hud-layer .hud-comm.down { opacity: 0.35; }
+.hud-layer .hud-sub { fill: #ffb547; font-family: var(--font-mono); font-size: 11px; font-weight: 700; }
+@keyframes hud-alarm { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.hud-layer .alarm { animation: hud-alarm calc(0.4s / var(--spd, 1)) ease-in-out 6; }
+
+/* ============================================================
+   LOG LATERAL DE EVENTOS
+   ============================================================ */
+.event-log {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 20px;
+  max-height: 560px;
+  overflow-y: auto;
+}
+.event-item {
+  padding: 9px 0 9px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.45;
+  animation: slideIn 0.3s ease-out;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.event-time {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
+}
+.event-item.ok { border-left: 2px solid var(--accent-green); }
+.event-item.warn { border-left: 2px solid var(--accent-amber); }
+.event-item.bad { border-left: 2px solid var(--accent-red); }
+.event-item.info { border-left: 2px solid var(--accent-cyan); }

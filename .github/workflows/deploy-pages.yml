@@ -1,0 +1,43 @@
+# ============================================================================
+# Publica o site estático no GitHub Pages.
+#
+# NÃO é necessário se, em Settings -> Pages, a origem estiver como
+# "Deploy from a branch" (o caminho mais simples, usado por padrão aqui).
+# Este workflow só roda quando acionado à mão (aba Actions -> Run workflow),
+# para não falhar em repositórios que usam o deploy por branch.
+#
+# Para usá-lo de verdade: em Settings -> Pages escolha "GitHub Actions" como
+# origem e troque o gatilho abaixo por "push: branches: [main]".
+# Ajuste "path" se o site não estiver na raiz do repositório (ex.: ./mars-ops).
+# ============================================================================
+name: Deploy GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

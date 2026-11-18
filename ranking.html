@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MARS-OPS — Ranking da Turma</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/ranking.css">
+</head>
+<body>
+
+<header class="top-header">
+  <div class="breadcrumb">
+    UFSM <span class="sep">//</span>
+    Integração de Sistemas na Indústria <span class="sep">//</span>
+    Painel do Docente
+  </div>
+  <div class="logo-row">
+    <div class="logo-title">MARS-OPS</div>
+    <div class="logo-sub">Ranking da Turma · Rodadas de <span id="round-minutes">10</span> min</div>
+    <div class="round-clock" id="round-clock">—</div>
+  </div>
+</header>
+
+<main>
+
+<!-- =============================================================
+     PORTÃO DE ACESSO
+     ============================================================= -->
+<section id="gate" class="screen active">
+  <div class="start-card">
+    <h2>Acesso Restrito</h2>
+    <p class="lead">Este painel mostra o ranking da turma. Os grupos jogam pelo link do jogo e não precisam entrar aqui.</p>
+
+    <div class="field">
+      <label for="gate-pass">Senha do painel</label>
+      <input id="gate-pass" type="password" autocomplete="current-password" placeholder="••••••••">
+      <div class="hint error" id="gate-error" hidden></div>
+      <div class="hint">Também funciona abrindo <code>ranking.html?k=SUA-SENHA</code>.</div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn mars" id="gate-btn">Entrar →</button>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================
+     PAINEL
+     ============================================================= -->
+<section id="panel" class="screen">
+  <div class="screen-title">// Comando Central · Classificação da Rodada</div>
+  <div class="panel-head">
+    <h1 class="screen-heading" id="round-title">Rodada atual</h1>
+    <div class="panel-actions">
+      <button class="btn ghost" id="btn-refresh">↻ Atualizar</button>
+      <button class="btn ghost" id="btn-lock">Sair</button>
+    </div>
+  </div>
+
+  <div id="status-box" class="alert amber" hidden></div>
+
+  <div class="podium" id="podium"></div>
+
+  <div class="rank-grid">
+    <div class="panel">
+      <h3>Classificação por grupo</h3>
+      <div class="table-wrap">
+        <table class="rank-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Grupo</th>
+              <th class="num">Pontos</th>
+              <th class="num">Objetivo</th>
+              <th class="num">Frota</th>
+              <th class="num">Processo</th>
+              <th class="num">Tentativas</th>
+            </tr>
+          </thead>
+          <tbody id="rank-body"></tbody>
+        </table>
+      </div>
+      <p class="table-note">
+        Vale a melhor pontuação do grupo na rodada. Empate se desfaz por menos créditos mal direcionados e, depois, por quem enviou primeiro. Clique em uma linha para ver o porquê da nota.
+      </p>
+    </div>
+
+    <div class="panel" id="detail-panel">
+      <h3>Memória de cálculo</h3>
+      <div id="detail-body" class="detail-empty">Selecione um grupo na tabela.</div>
+    </div>
+  </div>
+
+  <div class="panel attempts-panel">
+    <h3>Todas as tentativas da rodada</h3>
+    <div id="attempts-body"></div>
+  </div>
+</section>
+
+</main>
+
+<script type="module" src="js/ranking/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,305 @@
+/* ============================================================================
+   BASE — variáveis de tema, reset, cabeçalho, botões, formulários, painéis
+   ----------------------------------------------------------------------------
+   Paleta "mission control": fundo quase preto com toques ciano e laranja
+   marciano para alertas e identidade.
+   ========================================================================== */
+
+:root {
+  --bg-deep: #070b14;
+  --bg-panel: #0f1624;
+  --bg-card: #152030;
+  --bg-card-hover: #1c2a3e;
+  --border: #243448;
+  --border-strong: #3a5068;
+  --text-primary: #e8eef5;
+  --text-secondary: #8ea3b8;
+  --text-dim: #5a6e82;
+  --accent-cyan: #00d4ff;
+  --accent-cyan-dim: #0088aa;
+  --accent-mars: #ff6b35;
+  --accent-mars-dim: #cc4e1e;
+  --accent-green: #3ddc84;
+  --accent-amber: #ffb547;
+  --accent-red: #ff5370;
+  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "SF Mono", "Monaco", "Consolas", "Courier New", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+  background-image:
+    radial-gradient(ellipse at top, rgba(255, 107, 53, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom, rgba(0, 212, 255, 0.03) 0%, transparent 50%);
+}
+
+/* scanlines muito sutis pra ambiente de terminal */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 212, 255, 0.012) 3px,
+    rgba(0, 212, 255, 0.012) 4px
+  );
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.top-header {
+  padding: 16px 32px 12px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(15, 22, 36, 0.8), transparent);
+}
+
+.breadcrumb {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.breadcrumb .sep { margin: 0 8px; color: var(--border-strong); }
+
+.logo-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.logo-title {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--accent-mars);
+  text-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+}
+.logo-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.round-clock {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--accent-cyan);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 10px;
+  background: rgba(0, 212, 255, 0.05);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   SHELL DE CONTEÚDO
+   ============================================================ */
+main { padding: 32px; max-width: 1280px; margin: 0 auto; }
+
+.screen { display: none; animation: fadeIn 0.4s ease-out; }
+.screen.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.screen-title {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-cyan);
+  margin-bottom: 8px;
+}
+.screen-heading {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  letter-spacing: -0.01em;
+}
+.screen-lead {
+  color: var(--text-secondary);
+  max-width: 720px;
+  margin-bottom: 24px;
+}
+
+/* ============================================================
+   FORMULÁRIOS
+   ============================================================ */
+.field { margin-bottom: 20px; }
+.field label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.field input,
+.field textarea {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 14px;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+.field textarea { min-height: 80px; resize: vertical; }
+.field .hint { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+.field .hint.error { color: var(--accent-red); }
+
+/* ============================================================
+   BOTÕES
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-cyan);
+  color: #061018;
+  border: none;
+  padding: 12px 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0, 212, 255, 0.3); }
+.btn:active { transform: translateY(0); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn.mars { background: var(--accent-mars); color: #1a0a04; }
+.btn.mars:hover { box-shadow: 0 6px 20px rgba(255, 107, 53, 0.3); }
+
+.btn.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+}
+.btn.ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-cyan);
+  box-shadow: none;
+}
+
+.action-bar {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   PAINÉIS E ALERTAS GENÉRICOS
+   ============================================================ */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 24px;
+}
+.panel h3,
+.audit-panel h3,
+.score-panel h3,
+.events-summary h3,
+.event-log h3,
+.budget-side h3 {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-cyan);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.alert {
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 12px;
+  border-left: 3px solid;
+}
+.alert.red { background: rgba(255, 83, 112, 0.1); color: var(--accent-red); border-color: var(--accent-red); }
+.alert.amber { background: rgba(255, 181, 71, 0.1); color: var(--accent-amber); border-color: var(--accent-amber); }
+.alert.green { background: rgba(61, 220, 132, 0.1); color: var(--accent-green); border-color: var(--accent-green); }
+
+.tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--accent-cyan);
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.tag.warn { background: rgba(255, 181, 71, 0.12); color: var(--accent-amber); }
+
+/* scrollbar discreto */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan-dim); }
+
+/* ============================================================
+   IMPRESSÃO — o relatório precisa sair legível no papel
+   ============================================================ */
+@media print {
+  body { background: #fff; color: #111; }
+  body::before { display: none; }
+  .top-header, .action-bar, .player { display: none; }
+  .screen { display: none !important; }
+  .screen#screen-debrief { display: block !important; }
+  .panel, .audit-panel, .score-panel, .events-summary,
+  .debrief-narrative, .metric-card {
+    background: #fff;
+    border-color: #bbb;
+    color: #111;
+  }
+  .m-value, .st-value, .s-points { color: #111 !important; }
+}
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+@media (max-width: 640px) {
+  main { padding: 16px; }
+  .top-header { padding: 12px 16px 10px; }
+  .screen-heading { font-size: 24px; }
+  .round-clock { margin-left: 0; }
+}
