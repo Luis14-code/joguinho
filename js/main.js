@@ -14,7 +14,7 @@ import { renderPlanning, bindTabs } from './ui/planning.js';
 import { renderDebrief } from './ui/debrief.js';
 import { animateSimulation, stopScene, stepScene, seekTo } from './scene/scene.js';
 import { flushQueue } from './net/leaderboard.js';
-import { currentRound, formatCountdown } from './net/rounds.js';
+import { startRoundClock } from './ui/roundclock.js';
 
 function pickMission(m) {
   state.mission = m;
@@ -30,18 +30,6 @@ function launchMission() {
     renderDebrief();
     showScreen('screen-debrief');
   });
-}
-
-/** Relógio da rodada no cabeçalho: quem joga sabe quanto falta para zerar. */
-function startRoundClock() {
-  const el = document.getElementById('round-clock');
-  if (!el) return;
-  const tick = () => {
-    const round = currentRound();
-    el.textContent = `Rodada ${round.label} · zera em ${formatCountdown(round.msLeft)}`;
-  };
-  tick();
-  setInterval(tick, 1000);
 }
 
 function boot() {

@@ -8,8 +8,10 @@
 
 import { state } from '../core/state.js';
 import { SCORE_MAX } from '../core/scoring.js';
-import { buildEntry, submitScore, isConfigured } from '../net/leaderboard.js';
-import { currentRound, formatCountdown } from '../net/rounds.js';
+import { buildEntry, submitScore, isConfigured, serverNow } from '../net/leaderboard.js';
+import { formatCountdown } from '../net/rounds.js';
+import { getRound, refreshRoundNow } from './roundclock.js';
+import { RANKING_CONFIG } from '../../config.js';
 
 export function renderDebrief() {
   const r = state.simResult;
@@ -73,7 +75,6 @@ function renderMetrics(r) {
 
 /** Pontuação aberta: cada parcela e o que a derrubou. */
 function renderScorePanel(r) {
-  const round = currentRound();
   const rows = r.scoreComponents.map((c) => `
     <div class="score-row">
       <div class="s-head">
@@ -92,7 +93,7 @@ function renderScorePanel(r) {
       <div class="st-value">${r.score}<span class="st-max">/${SCORE_MAX}</span></div>
       <div class="st-caption">
         pontos = eficiência global × 10<br>
-        Rodada ${round.label} · reinicia em ${formatCountdown(round.msLeft)}
+        50% objetivo · 30% frota preservada · 20% processo
       </div>
     </div>
     ${rows}
@@ -118,13 +119,24 @@ async function sendScore(r) {
     return;
   }
 
-  const entry = buildEntry(state.group, state.mission, r);
+  const entry = buildEntry(state.group, state.mission, r, getRound());
   const res = await submitScore(entry);
   state.submission = res;
 
   if (res.ok) {
     box.className = 'score-send ok';
-    box.textContent = `✓ ${r.score} pontos enviados ao ranking da rodada ${res.round.label}.`;
+    box.textContent = `✓ ${r.score} pontos enviados ao ranking.`;
+    // relê a rodada: se esta foi a primeira jogada, o cronômetro começou agora
+    const round = await refreshRoundNow();
+    if (round && round.state === 'running') {
+      const left = Math.max(0, round.endsAt - serverNow());
+      const abriu = Math.abs(round.startedAt - serverNow()) < 20000;
+      box.textContent = abriu
+        ? `✓ ${r.score} pontos enviados. Sua jogada abriu a rodada: o ranking zera em ${formatCountdown(left)}.`
+        : `✓ ${r.score} pontos enviados ao ranking. A rodada zera em ${formatCountdown(left)}.`;
+    } else {
+      box.textContent = `✓ ${r.score} pontos enviados ao ranking (rodada de ${RANKING_CONFIG.roundMinutes} min).`;
+    }
   } else if (res.queued) {
     box.className = 'score-send warn';
     box.textContent = '⚠ Sem conexão com o ranking. A pontuação ficou salva e será reenviada na próxima missão.';

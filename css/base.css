@@ -303,3 +303,10 @@ main { padding: 32px; max-width: 1280px; margin: 0 auto; }
   .screen-heading { font-size: 24px; }
   .round-clock { margin-left: 0; }
 }
+
+/* rodada ainda não começou: relógio em repouso */
+.round-clock.idle {
+  color: var(--text-secondary);
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}

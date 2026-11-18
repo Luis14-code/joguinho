@@ -14,7 +14,8 @@ create table if not exists public.marsops_scores (
   id             uuid primary key default gen_random_uuid(),
   created_at     timestamptz not null default now(),
 
-  -- rodada = floor(epoch_ms / (roundMinutes * 60000)), calculada no cliente
+  -- diagnóstico: minuto em que a rodada em curso começou. O ranking NÃO é
+  -- filtrado por aqui — a rodada é derivada dos horários (ver js/net/rounds.js)
   round_id       bigint      not null,
 
   group_name     text        not null,
@@ -76,10 +77,48 @@ create policy "marsops leitura publica"
 grant select, insert on public.marsops_scores to anon, authenticated;
 
 -- ============================================================================
+-- Marcadores de reinício do ranking
+-- ----------------------------------------------------------------------------
+-- A rodada começa na primeira jogada e dura `roundMinutes` (config.js). O
+-- botão "zerar ranking" do painel grava uma linha aqui: tudo anterior sai da
+-- classificação e o cronômetro volta a esperar a próxima jogada. Nada é
+-- apagado do banco.
+-- ============================================================================
+
+create table if not exists public.marsops_resets (
+  id        uuid primary key default gen_random_uuid(),
+  at        timestamptz not null default now(),
+  by_label  text,
+
+  constraint marsops_reset_label_len check (by_label is null or char_length(by_label) <= 60)
+);
+
+create index if not exists marsops_resets_at_idx
+  on public.marsops_resets (at desc);
+
+alter table public.marsops_resets enable row level security;
+
+drop policy if exists "marsops reset insert publico" on public.marsops_resets;
+create policy "marsops reset insert publico"
+  on public.marsops_resets
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "marsops reset leitura publica" on public.marsops_resets;
+create policy "marsops reset leitura publica"
+  on public.marsops_resets
+  for select
+  to anon, authenticated
+  using (true);
+
+grant select, insert on public.marsops_resets to anon, authenticated;
+
+-- ============================================================================
 -- OPCIONAL — limpeza do histórico
 -- ----------------------------------------------------------------------------
--- O ranking já se reinicia sozinho a cada rodada (o painel só mostra a rodada
--- corrente), então nada precisa ser apagado para a competição funcionar.
+-- O ranking já se reinicia sozinho quando a rodada vence, e o botão do painel
+-- zera na hora, então nada precisa ser apagado para a competição funcionar.
 -- Rode isto apenas se quiser descartar o histórico antigo:
 --
 --   delete from public.marsops_scores where created_at < now() - interval '1 day';

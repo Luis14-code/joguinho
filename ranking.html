@@ -18,7 +18,7 @@
   </div>
   <div class="logo-row">
     <div class="logo-title">MARS-OPS</div>
-    <div class="logo-sub">Ranking da Turma · Rodadas de <span id="round-minutes">10</span> min</div>
+    <div class="logo-sub">Ranking da Turma · Rodadas de <span id="round-minutes">15</span> min</div>
     <div class="round-clock" id="round-clock">—</div>
   </div>
 </header>
@@ -55,9 +55,12 @@
     <h1 class="screen-heading" id="round-title">Rodada atual</h1>
     <div class="panel-actions">
       <button class="btn ghost" id="btn-refresh">↻ Atualizar</button>
+      <button class="btn mars" id="btn-reset">⟲ Zerar ranking</button>
       <button class="btn ghost" id="btn-lock">Sair</button>
     </div>
   </div>
+
+  <div class="round-state" id="round-state"></div>
 
   <div id="status-box" class="alert amber" hidden></div>
 

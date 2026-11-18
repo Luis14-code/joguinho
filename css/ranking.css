@@ -226,3 +226,27 @@
   color: var(--accent-cyan);
   margin-left: auto;
 }
+
+/* ---------- estado da rodada ---------- */
+.round-state {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-cyan);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: rgba(0, 212, 255, 0.05);
+}
+.round-state.waiting {
+  border-left-color: var(--accent-amber);
+  background: rgba(255, 181, 71, 0.06);
+}
+.round-state b { color: var(--text-primary); font-family: var(--font-mono); }
+.round-state .rs-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}

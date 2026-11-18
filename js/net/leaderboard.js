@@ -2,25 +2,40 @@
    RANKING — cliente REST do Supabase
    ----------------------------------------------------------------------------
    Site estático não tem servidor, então o navegador fala direto com a API REST
-   do Supabase usando a chave anon. As políticas RLS do schema permitem apenas
-   INSERT e SELECT: ninguém apaga nem edita a pontuação de outro grupo.
+   do Supabase usando a chave pública. As políticas RLS do schema permitem
+   apenas INSERT e SELECT: ninguém apaga nem edita a pontuação de outro grupo.
+
+   O relógio de referência é o do servidor (cabeçalho Date de cada resposta),
+   não o da máquina: assim o cronômetro da rodada bate em todos os notebooks
+   da sala, mesmo com relógios desacertados.
 
    Se a wifi da sala falhar no momento do envio, a pontuação fica numa fila no
    localStorage e é reenviada na próxima tentativa.
    ========================================================================== */
 
 import { RANKING_CONFIG } from '../../config.js';
-import { currentRound } from './rounds.js';
+import { deriveRound } from './rounds.js';
 
 const QUEUE_KEY = 'marsops.pendingScores';
+const RESETS_TABLE = 'marsops_resets';
+
+/** Diferença entre o relógio do servidor e o desta máquina, em ms. */
+let clockOffset = 0;
+
+export function serverNow() {
+  return Date.now() + clockOffset;
+}
 
 export function isConfigured() {
   return Boolean(RANKING_CONFIG.supabaseUrl && RANKING_CONFIG.supabaseAnonKey);
 }
 
-function endpoint(query = '') {
-  const base = RANKING_CONFIG.supabaseUrl.replace(/\/+$/, '');
-  return `${base}/rest/v1/${RANKING_CONFIG.table}${query}`;
+function base() {
+  return RANKING_CONFIG.supabaseUrl.replace(/\/+$/, '');
+}
+
+function endpoint(table, query = '') {
+  return `${base()}/rest/v1/${table}${query}`;
 }
 
 function headers(extra = {}) {
@@ -33,11 +48,90 @@ function headers(extra = {}) {
   return h;
 }
 
+/** Sincroniza o relógio com o servidor a cada resposta recebida. */
+function syncClock(res) {
+  const d = res.headers.get('date');
+  if (!d) return;
+  const t = Date.parse(d);
+  if (!Number.isNaN(t)) clockOffset = t - Date.now();
+}
+
+async function get(table, query) {
+  const res = await fetch(endpoint(table, query), { headers: headers() });
+  syncClock(res);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    const err = new Error(`HTTP ${res.status} ${text.slice(0, 200)}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
+/* --------------------------------------------------------------------------
+   Leitura da rodada
+   -------------------------------------------------------------------------- */
+
+/** Janela de busca: o bastante para derivar a rodada sem puxar o banco todo. */
+function sinceIso() {
+  return new Date(serverNow() - 24 * 60 * 60 * 1000).toISOString();
+}
+
+/**
+ * Estado completo da rodada corrente.
+ * @param {{light?: boolean}} opts  light = só os horários (relógio do jogo)
+ */
+export async function fetchRoundState({ light = false } = {}) {
+  const select = light ? 'created_at' : '*';
+  const [rows, resets] = await Promise.all([
+    get(RANKING_CONFIG.table, `?select=${select}&created_at=gte.${sinceIso()}&order=created_at.asc&limit=1000`),
+    fetchLastReset(),
+  ]);
+  const times = rows.map((r) => Date.parse(r.created_at)).filter((t) => !Number.isNaN(t));
+  const round = deriveRound(times, resets, serverNow());
+  return { round, rows, lastResetAt: resets };
+}
+
+/** Horário do último reinício manual, ou null. */
+export async function fetchLastReset() {
+  try {
+    const rows = await get(RESETS_TABLE, '?select=at&order=at.desc&limit=1');
+    return rows.length ? Date.parse(rows[0].at) : null;
+  } catch (e) {
+    // tabela ainda não criada (ver sql/migracao-rodadas.sql): segue sem
+    // reinício manual, que é exatamente o comportamento anterior
+    if (e.status === 404 || e.status === 400) return null;
+    throw e;
+  }
+}
+
+/** Grava o marcador que zera o ranking a partir de agora. */
+export async function pushReset(label = 'painel') {
+  const res = await fetch(endpoint(RESETS_TABLE), {
+    method: 'POST',
+    headers: headers({ Prefer: 'return=minimal' }),
+    body: JSON.stringify([{ by_label: label.slice(0, 60) }]),
+  });
+  syncClock(res);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 404 || res.status === 400) {
+      throw new Error('A tabela de reinícios ainda não existe. Rode sql/migracao-rodadas.sql no Supabase.');
+    }
+    throw new Error(`HTTP ${res.status} ${text.slice(0, 200)}`);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Envio de pontuação
+   -------------------------------------------------------------------------- */
+
 /** Monta a linha a ser gravada a partir do resultado da simulação. */
-export function buildEntry(group, mission, result) {
-  const round = currentRound();
+export function buildEntry(group, mission, result, round) {
   return {
-    round_id: round.id,
+    // round_id não manda mais no ranking (a rodada é derivada dos horários),
+    // mas continua gravado como diagnóstico: o minuto em que a rodada começou
+    round_id: Math.floor(((round && round.startedAt) || serverNow()) / 60000),
     group_name: (group.name || 'Sem nome').slice(0, 60),
     members: (group.members || '').slice(0, 500),
     mission_id: mission.id,
@@ -93,11 +187,12 @@ function enqueue(entry) {
 }
 
 async function postRows(rows) {
-  const res = await fetch(endpoint(), {
+  const res = await fetch(endpoint(RANKING_CONFIG.table), {
     method: 'POST',
     headers: headers({ Prefer: 'return=minimal' }),
     body: JSON.stringify(rows),
   });
+  syncClock(res);
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`HTTP ${res.status} ${text.slice(0, 200)}`);
@@ -117,31 +212,16 @@ export async function flushQueue() {
 
 /**
  * Envia a pontuação.
- * @returns {Promise<{ok:boolean, queued?:boolean, reason?:string, round:object}>}
+ * @returns {Promise<{ok:boolean, queued?:boolean, reason?:string}>}
  */
 export async function submitScore(entry) {
-  const round = currentRound();
-  if (!isConfigured()) {
-    return { ok: false, reason: 'not-configured', round };
-  }
+  if (!isConfigured()) return { ok: false, reason: 'not-configured' };
   try {
     await flushQueue();
     await postRows([entry]);
-    return { ok: true, round };
+    return { ok: true };
   } catch (e) {
     enqueue(entry);
-    return { ok: false, queued: true, reason: e.message, round };
+    return { ok: false, queued: true, reason: e.message };
   }
-}
-
-/** Busca as pontuações de uma rodada, já ordenadas. */
-export async function fetchRound(roundId) {
-  if (!isConfigured()) throw new Error('Ranking não configurado (veja config.js).');
-  const query = `?round_id=eq.${roundId}&order=score.desc,wasted.asc,created_at.asc&limit=500`;
-  const res = await fetch(endpoint(query), { headers: headers() });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`HTTP ${res.status} ${text.slice(0, 200)}`);
-  }
-  return res.json();
 }

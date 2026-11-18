@@ -10,8 +10,8 @@
    ========================================================================== */
 
 import { RANKING_CONFIG } from '../../config.js';
-import { fetchRound, isConfigured } from '../net/leaderboard.js';
-import { currentRound, formatCountdown } from '../net/rounds.js';
+import { fetchRoundState, pushReset, isConfigured, serverNow } from '../net/leaderboard.js';
+import { deriveRound, filterRoundRows, formatCountdown, hhmm } from '../net/rounds.js';
 import { SCORE_MAX, verdictByKey } from '../core/scoring.js';
 
 const SESSION_KEY = 'marsops.rankingUnlocked';
@@ -23,8 +23,10 @@ const DEMO = URL_PARAMS.get('demo') === '1';
 let rows = [];
 let groups = [];
 let selectedKey = null;
-let activeRoundId = null;
+let round = { state: 'waiting', cutAt: 0 };
+let lastResetAt = null;
 let refreshTimer = null;
+let loading = false;
 
 /* --------------------------------------------------------------------------
    Portão de acesso
@@ -110,49 +112,121 @@ function isBetter(a, b) {
 }
 
 async function load() {
-  const round = currentRound();
-  activeRoundId = round.id;
+  if (loading) return;
+  loading = true;
   const status = document.getElementById('status-box');
 
-  // ranking.html?demo=1 — preenche o painel com dados fictícios para conferir
-  // o layout antes de configurar o Supabase
-  if (DEMO) {
-    rows = demoRows(round.id);
-    status.hidden = false;
-    status.className = 'alert amber';
-    status.textContent = '⚠ Modo demonstração: dados fictícios, nada vem do banco.';
+  try {
+    // ranking.html?demo=1 — preenche o painel com dados fictícios para conferir
+    // o layout antes de configurar o Supabase
+    if (DEMO) {
+      const all = demoRows();
+      const times = all.map((r) => Date.parse(r.created_at)).sort((a, b) => a - b);
+      round = deriveRound(times, null, Date.now());
+      rows = filterRoundRows(all, round);
+      status.hidden = false;
+      status.className = 'alert amber';
+      status.textContent = '⚠ Modo demonstração: dados fictícios, nada vem do banco.';
+    } else if (!isConfigured()) {
+      status.hidden = false;
+      status.className = 'alert red';
+      status.textContent = '⚠ Ranking não configurado: preencha supabaseUrl e supabaseAnonKey em config.js.';
+      rows = [];
+      round = { state: 'waiting', cutAt: 0 };
+    } else {
+      try {
+        const st = await fetchRoundState();
+        round = st.round;
+        lastResetAt = st.lastResetAt;
+        rows = filterRoundRows(st.rows, round);
+        status.hidden = true;
+      } catch (e) {
+        status.hidden = false;
+        status.className = 'alert red';
+        status.textContent = `⚠ Falha ao ler o ranking: ${e.message}`;
+      }
+    }
+
     groups = aggregate(rows);
+    if (selectedKey && !groups.some((g) => g.key === selectedKey)) selectedKey = null;
     if (!selectedKey && groups.length) selectedKey = groups[0].key;
     render();
+    paintRoundState();
+  } finally {
+    loading = false;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Cabeçalho da rodada e botão de zerar
+   -------------------------------------------------------------------------- */
+
+function paintRoundState() {
+  const clock = document.getElementById('round-clock');
+  const title = document.getElementById('round-title');
+  const box = document.getElementById('round-state');
+  const minutos = RANKING_CONFIG.roundMinutes;
+
+  if (round.state === 'running') {
+    const left = Math.max(0, round.endsAt - (DEMO ? Date.now() : serverNow()));
+    title.textContent = 'Rodada em curso';
+    clock.textContent = `zera em ${formatCountdown(left)}`;
+    clock.classList.remove('idle');
+    box.className = 'round-state running';
+    box.innerHTML = `⏱ Começou às <b>${hhmm(round.startedAt)}</b>, na primeira jogada da rodada. `
+      + `Zera sozinho às <b>${hhmm(round.endsAt)}</b> — ou agora, se você apertar "Zerar ranking".`
+      + resetNote();
+  } else {
+    title.textContent = 'Aguardando a primeira jogada';
+    clock.textContent = 'cronômetro parado';
+    clock.classList.add('idle');
+    box.className = 'round-state waiting';
+    box.innerHTML = `⏸ Ranking zerado. O cronômetro de <b>${minutos} min</b> só começa a contar `
+      + 'quando o primeiro grupo terminar uma missão.'
+      + resetNote();
+  }
+}
+
+function resetNote() {
+  if (!lastResetAt) return '';
+  return `<span class="rs-note">Último reinício manual às ${hhmm(lastResetAt)}.</span>`;
+}
+
+async function doReset() {
+  const btn = document.getElementById('btn-reset');
+  const quantos = rows.length;
+  const aviso = quantos
+    ? `Zerar o ranking agora?\n\n${quantos} pontuação(ões) da rodada atual saem da tabela e o cronômetro volta a esperar a próxima jogada.\n\nNada é apagado do banco — o histórico continua lá.`
+    : 'Zerar o ranking agora?\n\nO cronômetro volta a esperar a próxima jogada.';
+  if (!window.confirm(aviso)) return;
+
+  if (DEMO) {
+    window.alert('Modo demonstração: o botão não grava nada.');
     return;
   }
 
-  if (!isConfigured()) {
-    status.hidden = false;
-    status.className = 'alert red';
-    status.textContent = '⚠ Ranking não configurado: preencha supabaseUrl e supabaseAnonKey em config.js.';
-    render();
-    return;
-  }
-
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Zerando…';
   try {
-    rows = await fetchRound(round.id);
-    status.hidden = true;
+    await pushReset('painel');
+    selectedKey = null;
+    await load();
   } catch (e) {
+    const status = document.getElementById('status-box');
     status.hidden = false;
     status.className = 'alert red';
-    status.textContent = `⚠ Falha ao ler o ranking: ${e.message}`;
+    status.textContent = `⚠ Não foi possível zerar: ${e.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
   }
-  groups = aggregate(rows);
-  if (selectedKey && !groups.some((g) => g.key === selectedKey)) selectedKey = null;
-  if (!selectedKey && groups.length) selectedKey = groups[0].key;
-  render();
 }
 
 /** Linhas fictícias para o modo demonstração. */
-function demoRows(roundId) {
+function demoRows() {
   const base = (over) => ({
-    round_id: roundId,
+    round_id: 0,
     created_at: new Date(Date.now() - Math.random() * 5 * 60000).toISOString(),
     members: '',
     mission_id: 'logistica',
@@ -203,7 +277,7 @@ function renderPodium() {
   const top = groups.slice(0, RANKING_CONFIG.podiumSize);
 
   if (!top.length) {
-    el.innerHTML = '<div class="podium-empty">Nenhuma pontuação nesta rodada ainda. O painel se atualiza sozinho.</div>';
+    el.innerHTML = '<div class="podium-empty">Ranking zerado. A rodada começa quando o primeiro grupo terminar uma missão — o painel se atualiza sozinho.</div>';
     return;
   }
 
@@ -226,7 +300,7 @@ function renderPodium() {
 function renderTable() {
   const body = document.getElementById('rank-body');
   if (!groups.length) {
-    body.innerHTML = '<tr class="empty-row"><td colspan="7">Aguardando as primeiras missões da rodada…</td></tr>';
+    body.innerHTML = '<tr class="empty-row"><td colspan="7">Aguardando a primeira missão da rodada…</td></tr>';
     return;
   }
 
@@ -399,12 +473,13 @@ function startPanel() {
   document.getElementById('round-minutes').textContent = RANKING_CONFIG.roundMinutes;
   load();
 
+  // O contador anda a cada segundo com o relógio do servidor; quando a rodada
+  // vence, uma recarga mostra a tabela já zerada.
   const tick = () => {
-    const round = currentRound();
-    document.getElementById('round-clock').textContent = `zera em ${formatCountdown(round.msLeft)}`;
-    document.getElementById('round-title').textContent = `Rodada ${round.label}`;
-    // virou a rodada: recarrega já com o novo id e a tabela aparece vazia
-    if (activeRoundId !== null && round.id !== activeRoundId) load();
+    const venceu = round.state === 'running'
+      && (DEMO ? Date.now() : serverNow()) >= round.endsAt;
+    if (venceu) load();
+    else paintRoundState();
   };
   tick();
   setInterval(tick, 1000);
@@ -453,6 +528,7 @@ async function boot() {
   });
 
   document.getElementById('btn-refresh').addEventListener('click', load);
+  document.getElementById('btn-reset').addEventListener('click', doReset);
   document.getElementById('btn-lock').addEventListener('click', lock);
 
   let unlocked = false;

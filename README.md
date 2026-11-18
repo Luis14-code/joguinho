@@ -16,7 +16,7 @@ reinicia a cada 10 minutos.
 | --- | --- |
 | Um `.html` de ~3000 linhas com CSS e JS embutidos | Módulos ES separados por responsabilidade |
 | Sem pontuação comparável entre grupos | Pontuação 0–1000 com memória de cálculo |
-| Sem ranking | Painel de ranking com rodadas de 10 min e pódio de 1º a 4º |
+| Sem ranking | Painel com pódio de 1º a 4º, rodada de 15 min e botão de zerar |
 | AGV sem trilho andava e só depois travava | AGV sem trilho **não sai do lugar** desde o primeiro quadro |
 
 ---
@@ -58,7 +58,9 @@ mars-ops/
 │   │   ├── rounds.js       Rodadas derivadas do relógio
 │   │   └── leaderboard.js  Cliente REST do Supabase + fila offline
 │   └── ranking/main.js     Painel do docente
-├── sql/schema.sql          Tabela e políticas do Supabase
+├── sql/
+│   ├── schema.sql          Tabelas e políticas do Supabase
+│   └── migracao-rodadas.sql  Migração para quem já tinha o schema antigo
 └── tools/check-ranking.mjs Testa a conexão com o Supabase pelo terminal
 ```
 
@@ -97,24 +99,28 @@ muito baixo).
 
 ## 4. Rodadas e ranking
 
-A rodada é derivada do relógio, não de um job no servidor:
+A rodada **não** é uma fatia fixa do relógio: ela começa quando alguém faz a
+**primeira jogada** e dura `roundMinutes` (15 por padrão). Enquanto ninguém
+joga, o cronômetro fica parado — dá para distribuir o link antes da aula sem
+queimar tempo de rodada.
 
-```
-roundId = floor(agora_em_ms / (roundMinutes × 60000))
-```
+Quando a rodada vence, o ranking **zera sozinho**: as pontuações seguintes já
+pertencem à próxima rodada, que por sua vez só começa a contar na primeira
+jogada depois do vencimento. E o painel tem o botão **⟲ Zerar ranking**, para
+recomeçar na hora sem esperar o cronômetro — útil quando a disputa acabou antes
+e você quer liberar todo mundo para jogar de novo.
 
-O jogo grava a pontuação com o `roundId` do momento do envio e o painel lê
-**apenas o `roundId` corrente**. Quando o relógio vira, a tabela zera sozinha e
-uma disputa nova começa — sem apagar nada e sem depender de alguém clicar em
-"limpar". O histórico fica no banco; o `sql/schema.sql` traz o comando opcional
-para descartá-lo.
+Zerar **não apaga nada**: grava um marcador em `marsops_resets` e tudo que veio
+antes sai da classificação. O histórico continua no banco.
 
-Tanto o jogo (no cabeçalho) quanto o painel mostram quanto falta para zerar.
+Tudo isso é derivado de dois dados públicos — os horários das pontuações e o
+último marcador de reinício — então o jogo e o painel chegam exatamente à mesma
+rodada sem precisar de servidor. O relógio de referência é o **do servidor**
+(cabeçalho `Date` das respostas), não o de cada notebook, então o contador bate
+em todas as máquinas da sala mesmo com relógios desacertados.
 
 No ranking vale a **melhor pontuação do grupo na rodada**. Empate se desfaz por
 menos créditos mal direcionados e, depois, por quem enviou primeiro.
-
----
 
 ## 5. Rodar localmente
 
@@ -137,6 +143,8 @@ a passo. Fora de localhost esse objeto não existe.
 
 1. Crie um projeto em <https://supabase.com> (plano gratuito basta).
 2. **SQL Editor → New query** → cole o conteúdo de `sql/schema.sql` → **Run**.
+   (Se você já tinha rodado uma versão anterior do schema, rode também
+   `sql/migracao-rodadas.sql`, que cria a tabela dos reinícios de ranking.)
 3. **Project Settings → API** → copie:
    - *Project URL* (ex.: `https://abcdefgh.supabase.co`)
    - a **chave pública**: nos projetos novos é a *Publishable key*
