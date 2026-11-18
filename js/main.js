@@ -15,6 +15,7 @@ import { renderDebrief } from './ui/debrief.js';
 import { animateSimulation, stopScene, stepScene, seekTo } from './scene/scene.js';
 import { flushQueue } from './net/leaderboard.js';
 import { startRoundClock } from './ui/roundclock.js';
+import { startVersionCheck } from './ui/versioncheck.js';
 
 function pickMission(m) {
   state.mission = m;
@@ -38,6 +39,7 @@ function boot() {
   renderMissions(pickMission);
   bindTabs();
   startRoundClock();
+  startVersionCheck();
   flushQueue();
 
   // grupo já registrado antes neste navegador

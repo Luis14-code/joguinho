@@ -15,6 +15,7 @@ import { fetchRoundState, pushReset, isConfigured } from '../net/leaderboard.js'
 import { deriveRound, filterRoundRows, hhmm } from '../net/rounds.js';
 import { SCORE_MAX, verdictByKey } from '../core/scoring.js';
 import { formatDuration, durationOf } from '../core/format.js';
+import { startVersionCheck } from '../ui/versioncheck.js';
 
 const SESSION_KEY = 'marsops.rankingUnlocked';
 
@@ -620,6 +621,8 @@ function escapeAttr(s) {
 }
 
 async function boot() {
+  startVersionCheck();
+
   document.getElementById('gate-btn').addEventListener('click', async () => {
     const pass = document.getElementById('gate-pass').value;
     if (!pass) { showGateError('Digite a senha.'); return; }

@@ -310,3 +310,35 @@ main { padding: 32px; max-width: 1280px; margin: 0 auto; }
   border-color: var(--border);
   background: rgba(255, 255, 255, 0.02);
 }
+
+/* ============================================================
+   AVISO DE VERSÃO ANTIGA (ver js/ui/versioncheck.js)
+   ============================================================ */
+.version-bar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--accent-amber);
+  color: #1a1206;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+.version-bar b { font-weight: 700; }
+.version-bar .vb-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #1a1206;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  opacity: 0.7;
+}
+.version-bar .vb-close:hover { opacity: 1; }
+@media print { .version-bar { display: none; } }

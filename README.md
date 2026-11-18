@@ -59,10 +59,13 @@ mars-ops/
 │   │   ├── rounds.js       Rodada corrente (tudo desde o último reinício)
 │   │   └── leaderboard.js  Cliente REST do Supabase + fila offline
 │   └── ranking/main.js     Painel do docente
+├── version.json            Marca do build publicado (lida sempre da rede)
 ├── sql/
 │   ├── schema.sql          Tabelas e políticas do Supabase
 │   └── migracao-rodadas.sql  Migração para quem já tinha o schema antigo
-└── tools/check-ranking.mjs Testa a conexão com o Supabase pelo terminal
+└── tools/
+    ├── check-ranking.mjs   Testa a conexão com o Supabase pelo terminal
+    └── stamp-version.mjs   Carimba o build antes de publicar
 ```
 
 Nenhum build, nenhum `npm install`: são módulos ES servidos como arquivos
@@ -232,6 +235,25 @@ workflow em `.github/workflows/deploy-pages.yml` (incluído aqui). Ele vem
 a Opção A. Para ligá-lo: em **Settings → Pages** escolha *GitHub Actions* como
 origem, troque o gatilho do workflow por `push: branches: [main]` e ajuste o
 `path:` para a pasta onde o site estiver.
+
+### Antes de publicar: carimbe o build
+
+```powershell
+node tools/stamp-version.mjs
+```
+
+Isso grava a mesma marca em `js/version.js` (que viaja no cache do navegador)
+e em `version.json` (lido sempre da rede). O GitHub Pages manda
+`Cache-Control: max-age=600`, então **quem já estava com a página aberta
+continua com o código antigo por até 10 minutos** — foi exatamente assim que as
+primeiras jogadas ficaram sem o tempo de missão registrado.
+
+Com o carimbo, a página detecta a diferença e mostra uma faixa amarela pedindo
+`Ctrl + Shift + R`. Recarregar normal não basta: só o recarregamento forçado
+ignora o cache dos módulos.
+
+Na prática: publique as alterações **uns 15 minutos antes da aula**, ou peça
+`Ctrl + Shift + R` nas máquinas que já estavam abertas.
 
 ### Links para a aula
 
