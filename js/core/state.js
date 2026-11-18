@@ -17,7 +17,29 @@ export const state = {
   simResult: null,
   /** preenchido por net/leaderboard depois do envio da pontuação */
   submission: null,
+
+  /**
+   * Cronômetro da missão: começa quando o grupo abre o briefing e para no
+   * lançamento. Mede o tempo de decisão (ler o briefing, montar a frota), que
+   * é o que depende da equipe — a cena depois disso tem duração fixa e pode
+   * ser pulada ou acelerada, então não entra na conta.
+   */
+  missionStartedAt: null,
+  missionDurationMs: null,
 };
+
+/** Zera e inicia o cronômetro da missão. */
+export function startMissionClock() {
+  state.missionStartedAt = Date.now();
+  state.missionDurationMs = null;
+}
+
+/** Para o cronômetro e devolve a duração em ms (null se nunca começou). */
+export function stopMissionClock() {
+  if (!state.missionStartedAt) return null;
+  state.missionDurationMs = Date.now() - state.missionStartedAt;
+  return state.missionDurationMs;
+}
 
 function emptyCart() {
   return {

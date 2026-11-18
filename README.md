@@ -43,7 +43,8 @@ mars-ops/
 │   │   ├── budget.js       Custos, tolerância e validação de lançamento
 │   │   ├── audit.js        Auditoria de investimento (supérfluo/redundante)
 │   │   ├── simulation.js   Rolagem de riscos e desfecho da missão
-│   │   └── scoring.js      Fórmula da pontuação e veredito
+│   │   ├── scoring.js      Fórmula da pontuação e veredito
+│   │   └── format.js       Formatação de tempo compartilhada
 │   ├── scene/
 │   │   ├── core.js         Relógio virtual compartilhado
 │   │   ├── geometry.js     Palco, lanes e helpers de posição
@@ -91,6 +92,11 @@ A parcela de processo começa em 100 e cai com:
 Tanto o debrief quanto o painel de ranking mostram essa conta linha a linha, de
 forma que o grupo e o docente veem **por que** a nota deu aquilo.
 
+Cada missão também registra o **tempo do briefing ao lançamento** — o tempo de
+decisão da equipe. A cena depois disso tem duração fixa e pode ser pulada ou
+acelerada, então não entra na conta. O tempo não altera a pontuação; serve para
+o prêmio de velocidade e para você comparar quem decidiu rápido.
+
 Vereditos: `MISSÃO BEM-SUCEDIDA`, `MISSÃO PARCIALMENTE COMPLETA` e
 `MISSÃO FRACASSADA` (esta última reservada a erro de planejamento ou objetivo
 muito baixo).
@@ -115,8 +121,18 @@ rodada sem precisar de servidor. O painel busca apenas as pontuações posterior
 ao último reinício, então o tráfego acompanha o tamanho da rodada e não o do
 banco.
 
-No ranking vale a **melhor pontuação do grupo na rodada**. Empate se desfaz por
-menos créditos mal direcionados e, depois, por quem enviou primeiro.
+No ranking o grupo é classificado pela **soma dos pontos de todas as missões**
+que jogou na rodada — jogar mais missões, e melhor, sobe a colocação. Empate se
+desfaz por menor tempo total e, depois, por quem começou antes.
+
+O painel mostra, para cada grupo:
+
+- a **soma** e os chips de cada missão com a nota que ela rendeu (pódio);
+- soma, missões jogadas, média, melhor nota e tempo total (tabela);
+- ao clicar na linha, o **desempenho do grupo** e uma **aba por jogo**, cada
+  uma com a memória de cálculo completa daquela missão;
+- um painel de **mais rápidos por missão**, contando só missões que não
+  fracassaram — senão desistir rápido venceria a prova de velocidade.
 
 ## 5. Rodar localmente
 

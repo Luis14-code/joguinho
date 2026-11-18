@@ -10,6 +10,7 @@ import { state } from '../core/state.js';
 import { SCORE_MAX } from '../core/scoring.js';
 import { buildEntry, submitScore, isConfigured } from '../net/leaderboard.js';
 import { hhmm } from '../net/rounds.js';
+import { formatDuration } from '../core/format.js';
 import { getRound, refreshRoundNow } from './roundclock.js';
 
 export function renderDebrief() {
@@ -65,6 +66,11 @@ function renderMetrics(r) {
       <div class="m-caption">Resultado + Frota + Processos</div>
     </div>
     <div class="metric-card">
+      <div class="m-label">Tempo de Missão</div>
+      <div class="m-value" style="color: var(--accent-cyan);">${formatDuration(r.durationMs)}</div>
+      <div class="m-caption">do briefing ao lançamento</div>
+    </div>
+    <div class="metric-card">
       <div class="m-label">Orçamento Utilizado</div>
       <div class="m-value" style="${costStyle}">${costPct}%</div>
       <div class="m-caption">${r.costUsed}/${r.budget}c${r.overBudget > 0 ? ' · excedido' : ''}${r.audit.wasted > 0 ? ` · ${r.audit.wasted}c mal usados` : ''}</div>
@@ -118,7 +124,8 @@ async function sendScore(r) {
     return;
   }
 
-  const entry = buildEntry(state.group, state.mission, r, getRound());
+  const antes = getRound();
+  const entry = buildEntry(state.group, state.mission, r, antes);
   const res = await submitScore(entry);
   state.submission = res;
 
@@ -128,7 +135,9 @@ async function sendScore(r) {
     // relê a rodada: esta jogada pode ter sido a primeira depois de um reinício
     const round = await refreshRoundNow();
     if (round && round.state === 'running') {
-      const abriu = Math.abs(round.startedAt - Date.now()) < 20000;
+      // só anuncia a abertura se o ranking estava mesmo vazio antes do envio
+      const abriu = (!antes || antes.state !== 'running')
+        && Math.abs(round.startedAt - Date.now()) < 20000;
       box.textContent = abriu
         ? `✓ ${r.score} pontos enviados. Sua jogada abriu a rodada do ranking.`
         : `✓ ${r.score} pontos enviados ao ranking, na rodada aberta às ${hhmm(round.startedAt)}.`;

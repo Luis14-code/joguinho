@@ -76,17 +76,17 @@
               <th>#</th>
               <th>Grupo</th>
               <th class="num">Pontos</th>
-              <th class="num">Objetivo</th>
-              <th class="num">Frota</th>
-              <th class="num">Processo</th>
-              <th class="num">Tentativas</th>
+              <th class="num">Missões</th>
+              <th class="num">Média</th>
+              <th class="num">Melhor</th>
+              <th class="num">Tempo</th>
             </tr>
           </thead>
           <tbody id="rank-body"></tbody>
         </table>
       </div>
       <p class="table-note">
-        Vale a melhor pontuação do grupo na rodada. Empate se desfaz por menos créditos mal direcionados e, depois, por quem enviou primeiro. Clique em uma linha para ver o porquê da nota.
+        Pontos = <b>soma</b> de todas as missões que o grupo jogou na rodada. Empate se desfaz por menor tempo total e, depois, por quem começou antes. Clique em uma linha para abrir o desempenho do grupo e as abas de cada jogo.
       </p>
     </div>
 
@@ -94,6 +94,14 @@
       <h3>Memória de cálculo</h3>
       <div id="detail-body" class="detail-empty">Selecione um grupo na tabela.</div>
     </div>
+  </div>
+
+  <div class="panel fastest-panel">
+    <h3>Mais rápidos por missão</h3>
+    <div id="fastest-body"></div>
+    <p class="table-note">
+      Tempo do briefing ao lançamento — a decisão da equipe. Só entram missões que não fracassaram, senão desistir rápido venceria a prova.
+    </p>
   </div>
 
   <div class="panel attempts-panel">

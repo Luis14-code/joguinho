@@ -5,7 +5,7 @@
    Cada etapa é um <section class="screen">; só a .active fica visível.
    ========================================================================== */
 
-import { state, resetCart, saveGroup, loadGroup } from './core/state.js';
+import { state, resetCart, saveGroup, loadGroup, startMissionClock, stopMissionClock } from './core/state.js';
 import { runSimulation } from './core/simulation.js';
 import { showScreen } from './ui/screens.js';
 import { renderMissions } from './ui/missions.js';
@@ -19,11 +19,13 @@ import { startRoundClock } from './ui/roundclock.js';
 function pickMission(m) {
   state.mission = m;
   resetCart();
+  startMissionClock();
   renderBriefing();
   showScreen('screen-briefing');
 }
 
 function launchMission() {
+  stopMissionClock();
   runSimulation();
   showScreen('screen-simulation');
   animateSimulation(() => {
@@ -80,6 +82,7 @@ function boot() {
 
   document.getElementById('btn-retry-mission').addEventListener('click', () => {
     stopScene();
+    startMissionClock();   // nova tentativa, cronômetro do zero
     renderPlanning();
     showScreen('screen-planning');
   });

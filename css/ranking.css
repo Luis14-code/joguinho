@@ -250,3 +250,115 @@
   font-size: 12px;
   color: var(--text-dim);
 }
+
+/* ---------- chips de missão no pódio ---------- */
+.podium-card .pc-missions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.pc-chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 3px 7px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  border-left: 2px solid var(--border-strong);
+  white-space: nowrap;
+}
+.pc-chip b { color: var(--text-primary); }
+.pc-chip.success { border-left-color: var(--accent-green); }
+.pc-chip.partial { border-left-color: var(--accent-amber); }
+.pc-chip.fail { border-left-color: var(--accent-red); }
+
+/* ---------- abas da memória de cálculo ---------- */
+.detail-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.dtab {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.dtab:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.dtab.active {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  color: var(--bg-deep);
+  font-weight: 700;
+}
+
+.detail-line[data-open-tab] { cursor: pointer; }
+.detail-line[data-open-tab]:hover { background: rgba(0, 212, 255, 0.06); }
+
+.attempt-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.attempt-head .ah-mission { font-weight: 700; font-size: 14px; }
+.attempt-head .ah-when {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+.attempt-head .verdict-chip { margin-left: 0; flex-shrink: 0; }
+
+/* ---------- mais rápidos por missão ---------- */
+.fastest-panel { margin-bottom: 20px; }
+.fast-row {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0 10px 12px;
+  border-bottom: 1px solid var(--border);
+  border-left: 2px solid var(--border-strong);
+  font-size: 13px;
+}
+.fast-row:last-child { border-bottom: none; }
+.fast-row.success { border-left-color: var(--accent-green); }
+.fast-row.partial { border-left-color: var(--accent-amber); }
+.fast-row .f-mission { font-family: var(--font-mono); font-weight: 700; color: var(--accent-mars); }
+.fast-row .f-title {
+  display: block;
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.fast-row .f-group { font-weight: 600; }
+.fast-row .f-meta { color: var(--text-secondary); font-size: 12px; }
+.fast-row .f-time {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent-cyan);
+  font-size: 15px;
+  text-align: right;
+}
+@media (max-width: 760px) {
+  .fast-row { grid-template-columns: 1fr auto; }
+  .fast-row .f-meta { grid-column: 1 / -1; }
+}

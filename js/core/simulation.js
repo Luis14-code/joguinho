@@ -307,6 +307,7 @@ export function runSimulation() {
     costUsed: cost,
     overBudget,
     budget: m.budget,
+    durationMs: state.missionDurationMs,
   };
 
   const scored = computeScore(result);

@@ -152,6 +152,9 @@ export function buildEntry(group, mission, result, round) {
     budget: result.budget,
     wasted: result.audit.wasted,
     breakdown: {
+      // tempo do briefing ao lançamento; vai no jsonb para não exigir
+      // alteração de schema em quem já tem a tabela criada
+      durationMs: result.durationMs || null,
       components: result.scoreComponents,
       processLog: result.processLog,
       audit: result.audit.findings,
