@@ -16,7 +16,7 @@ reinicia a cada 10 minutos.
 | --- | --- |
 | Um `.html` de ~3000 linhas com CSS e JS embutidos | Módulos ES separados por responsabilidade |
 | Sem pontuação comparável entre grupos | Pontuação 0–1000 com memória de cálculo |
-| Sem ranking | Painel com pódio de 1º a 4º, rodada de 15 min e botão de zerar |
+| Sem ranking | Painel com pódio de 1º a 4º e botão de zerar a rodada |
 | AGV sem trilho andava e só depois travava | AGV sem trilho **não sai do lugar** desde o primeiro quadro |
 
 ---
@@ -55,7 +55,7 @@ mars-ops/
 │   │   └── scene.js        Montagem, loop, seek e player
 │   ├── ui/                 Render de cada tela
 │   ├── net/
-│   │   ├── rounds.js       Rodadas derivadas do relógio
+│   │   ├── rounds.js       Rodada corrente (tudo desde o último reinício)
 │   │   └── leaderboard.js  Cliente REST do Supabase + fila offline
 │   └── ranking/main.js     Painel do docente
 ├── sql/
@@ -99,25 +99,21 @@ muito baixo).
 
 ## 4. Rodadas e ranking
 
-A rodada **não** é uma fatia fixa do relógio: ela começa quando alguém faz a
-**primeira jogada** e dura `roundMinutes` (15 por padrão). Enquanto ninguém
-joga, o cronômetro fica parado — dá para distribuir o link antes da aula sem
-queimar tempo de rodada.
-
-Quando a rodada vence, o ranking **zera sozinho**: as pontuações seguintes já
-pertencem à próxima rodada, que por sua vez só começa a contar na primeira
-jogada depois do vencimento. E o painel tem o botão **⟲ Zerar ranking**, para
-recomeçar na hora sem esperar o cronômetro — útil quando a disputa acabou antes
-e você quer liberar todo mundo para jogar de novo.
+A rodada **não tem prazo**: ela vale até você apertar **⟲ Zerar ranking** no
+painel. Enquanto não zerar, todas as jogadas disputam a mesma classificação —
+a turma pode jogar quantas missões quiser, e a melhor pontuação de cada grupo é
+a que conta.
 
 Zerar **não apaga nada**: grava um marcador em `marsops_resets` e tudo que veio
-antes sai da classificação. O histórico continua no banco.
+antes sai da classificação. O histórico continua no banco. Depois de zerar, o
+ranking fica em espera até alguém terminar a próxima missão — essa jogada abre
+a rodada nova.
 
 Tudo isso é derivado de dois dados públicos — os horários das pontuações e o
 último marcador de reinício — então o jogo e o painel chegam exatamente à mesma
-rodada sem precisar de servidor. O relógio de referência é o **do servidor**
-(cabeçalho `Date` das respostas), não o de cada notebook, então o contador bate
-em todas as máquinas da sala mesmo com relógios desacertados.
+rodada sem precisar de servidor. O painel busca apenas as pontuações posteriores
+ao último reinício, então o tráfego acompanha o tamanho da rodada e não o do
+banco.
 
 No ranking vale a **melhor pontuação do grupo na rodada**. Empate se desfaz por
 menos créditos mal direcionados e, depois, por quem enviou primeiro.
@@ -158,7 +154,6 @@ export const RANKING_CONFIG = {
   supabaseUrl: 'https://abcdefgh.supabase.co',
   supabaseAnonKey: 'eyJhbGciOi...',
   table: 'marsops_scores',
-  roundMinutes: 10,
   // ...
 };
 ```

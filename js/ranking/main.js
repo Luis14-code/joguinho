@@ -10,8 +10,8 @@
    ========================================================================== */
 
 import { RANKING_CONFIG } from '../../config.js';
-import { fetchRoundState, pushReset, isConfigured, serverNow } from '../net/leaderboard.js';
-import { deriveRound, filterRoundRows, formatCountdown, hhmm } from '../net/rounds.js';
+import { fetchRoundState, pushReset, isConfigured } from '../net/leaderboard.js';
+import { deriveRound, filterRoundRows, hhmm } from '../net/rounds.js';
 import { SCORE_MAX, verdictByKey } from '../core/scoring.js';
 
 const SESSION_KEY = 'marsops.rankingUnlocked';
@@ -122,7 +122,7 @@ async function load() {
     if (DEMO) {
       const all = demoRows();
       const times = all.map((r) => Date.parse(r.created_at)).sort((a, b) => a - b);
-      round = deriveRound(times, null, Date.now());
+      round = deriveRound(times, null);
       rows = filterRoundRows(all, round);
       status.hidden = false;
       status.className = 'alert amber';
@@ -139,7 +139,14 @@ async function load() {
         round = st.round;
         lastResetAt = st.lastResetAt;
         rows = filterRoundRows(st.rows, round);
-        status.hidden = true;
+        if (st.resetsAvailable) {
+          status.hidden = true;
+        } else {
+          // sem a tabela de reinícios o botão não tem onde gravar
+          status.hidden = false;
+          status.className = 'alert amber';
+          status.textContent = '⚠ O botão de zerar ainda não funciona: rode sql/migracao-rodadas.sql no SQL Editor do Supabase.';
+        }
       } catch (e) {
         status.hidden = false;
         status.className = 'alert red';
@@ -165,24 +172,21 @@ function paintRoundState() {
   const clock = document.getElementById('round-clock');
   const title = document.getElementById('round-title');
   const box = document.getElementById('round-state');
-  const minutos = RANKING_CONFIG.roundMinutes;
 
   if (round.state === 'running') {
-    const left = Math.max(0, round.endsAt - (DEMO ? Date.now() : serverNow()));
-    title.textContent = 'Rodada em curso';
-    clock.textContent = `zera em ${formatCountdown(left)}`;
+    title.textContent = 'Rodada em disputa';
+    clock.textContent = `${rows.length} jogada(s)`;
     clock.classList.remove('idle');
     box.className = 'round-state running';
-    box.innerHTML = `⏱ Começou às <b>${hhmm(round.startedAt)}</b>, na primeira jogada da rodada. `
-      + `Zera sozinho às <b>${hhmm(round.endsAt)}</b> — ou agora, se você apertar "Zerar ranking".`
+    box.innerHTML = `⏱ Aberta às <b>${hhmm(round.startedAt)}</b>, na primeira jogada depois do último reinício. `
+      + 'A rodada não tem prazo: ela vale até você apertar <b>Zerar ranking</b>.'
       + resetNote();
   } else {
     title.textContent = 'Aguardando a primeira jogada';
-    clock.textContent = 'cronômetro parado';
+    clock.textContent = 'ranking zerado';
     clock.classList.add('idle');
     box.className = 'round-state waiting';
-    box.innerHTML = `⏸ Ranking zerado. O cronômetro de <b>${minutos} min</b> só começa a contar `
-      + 'quando o primeiro grupo terminar uma missão.'
+    box.innerHTML = '⏸ Ranking zerado. A próxima rodada começa quando o primeiro grupo terminar uma missão.'
       + resetNote();
   }
 }
@@ -196,8 +200,8 @@ async function doReset() {
   const btn = document.getElementById('btn-reset');
   const quantos = rows.length;
   const aviso = quantos
-    ? `Zerar o ranking agora?\n\n${quantos} pontuação(ões) da rodada atual saem da tabela e o cronômetro volta a esperar a próxima jogada.\n\nNada é apagado do banco — o histórico continua lá.`
-    : 'Zerar o ranking agora?\n\nO cronômetro volta a esperar a próxima jogada.';
+    ? `Zerar o ranking agora?\n\n${quantos} pontuação(ões) da rodada atual saem da tabela e a próxima rodada começa na jogada seguinte.\n\nNada é apagado do banco — o histórico continua lá.`
+    : 'Zerar o ranking agora?\n\nO ranking já está vazio; isso só marca um novo começo.';
   if (!window.confirm(aviso)) return;
 
   if (DEMO) {
@@ -470,20 +474,7 @@ function renderAttempts() {
    -------------------------------------------------------------------------- */
 
 function startPanel() {
-  document.getElementById('round-minutes').textContent = RANKING_CONFIG.roundMinutes;
   load();
-
-  // O contador anda a cada segundo com o relógio do servidor; quando a rodada
-  // vence, uma recarga mostra a tabela já zerada.
-  const tick = () => {
-    const venceu = round.state === 'running'
-      && (DEMO ? Date.now() : serverNow()) >= round.endsAt;
-    if (venceu) load();
-    else paintRoundState();
-  };
-  tick();
-  setInterval(tick, 1000);
-
   refreshTimer = setInterval(load, Math.max(5, RANKING_CONFIG.refreshSeconds) * 1000);
 }
 

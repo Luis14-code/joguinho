@@ -27,13 +27,8 @@ export const RANKING_CONFIG = {
   /** Nome da tabela criada pelo schema.sql. */
   table: 'marsops_scores',
 
-  /**
-   * Duração da rodada em minutos. O cronômetro NÃO corre no vazio: ele começa
-   * na primeira jogada da rodada. Quando vence, o ranking zera sozinho e a
-   * próxima rodada só começa quando alguém jogar de novo. O painel também tem
-   * um botão para zerar na hora.
-   */
-  roundMinutes: 15,
+  // A rodada não tem prazo: ela vale até você apertar "Zerar ranking" no
+  // painel. Até lá, todas as jogadas disputam a mesma classificação.
 
   /**
    * Senha do painel de ranking, em SHA-256 (hex).

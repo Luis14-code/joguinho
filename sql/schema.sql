@@ -15,7 +15,8 @@ create table if not exists public.marsops_scores (
   created_at     timestamptz not null default now(),
 
   -- diagnóstico: minuto em que a rodada em curso começou. O ranking NÃO é
-  -- filtrado por aqui — a rodada é derivada dos horários (ver js/net/rounds.js)
+  -- filtrado por aqui — a rodada corrente é tudo que veio depois do último
+  -- reinício (ver js/net/rounds.js)
   round_id       bigint      not null,
 
   group_name     text        not null,
@@ -79,10 +80,9 @@ grant select, insert on public.marsops_scores to anon, authenticated;
 -- ============================================================================
 -- Marcadores de reinício do ranking
 -- ----------------------------------------------------------------------------
--- A rodada começa na primeira jogada e dura `roundMinutes` (config.js). O
--- botão "zerar ranking" do painel grava uma linha aqui: tudo anterior sai da
--- classificação e o cronômetro volta a esperar a próxima jogada. Nada é
--- apagado do banco.
+-- A rodada vale até o docente apertar "Zerar ranking" no painel, que grava
+-- uma linha aqui: tudo anterior sai da classificação e a próxima rodada começa
+-- na jogada seguinte. Nada é apagado do banco.
 -- ============================================================================
 
 create table if not exists public.marsops_resets (
@@ -117,8 +117,8 @@ grant select, insert on public.marsops_resets to anon, authenticated;
 -- ============================================================================
 -- OPCIONAL — limpeza do histórico
 -- ----------------------------------------------------------------------------
--- O ranking já se reinicia sozinho quando a rodada vence, e o botão do painel
--- zera na hora, então nada precisa ser apagado para a competição funcionar.
+-- O botão "Zerar ranking" do painel já recomeça a disputa sem apagar nada,
+-- então isto aqui não é necessário para a competição funcionar.
 -- Rode isto apenas se quiser descartar o histórico antigo:
 --
 --   delete from public.marsops_scores where created_at < now() - interval '1 day';

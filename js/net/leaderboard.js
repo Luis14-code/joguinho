@@ -72,35 +72,39 @@ async function get(table, query) {
    Leitura da rodada
    -------------------------------------------------------------------------- */
 
-/** Janela de busca: o bastante para derivar a rodada sem puxar o banco todo. */
-function sinceIso() {
-  return new Date(serverNow() - 24 * 60 * 60 * 1000).toISOString();
-}
-
 /**
  * Estado completo da rodada corrente.
+ *
+ * Busca primeiro o último reinício e depois só as pontuações posteriores a
+ * ele: o tráfego acompanha o tamanho da rodada, não o do banco.
+ *
  * @param {{light?: boolean}} opts  light = só os horários (relógio do jogo)
  */
 export async function fetchRoundState({ light = false } = {}) {
+  const { at: lastResetAt, available } = await fetchLastReset();
   const select = light ? 'created_at' : '*';
-  const [rows, resets] = await Promise.all([
-    get(RANKING_CONFIG.table, `?select=${select}&created_at=gte.${sinceIso()}&order=created_at.asc&limit=1000`),
-    fetchLastReset(),
-  ]);
+  const desde = lastResetAt ? `&created_at=gt.${encodeURIComponent(new Date(lastResetAt).toISOString())}` : '';
+  const rows = await get(
+    RANKING_CONFIG.table,
+    `?select=${select}${desde}&order=created_at.asc&limit=1000`
+  );
   const times = rows.map((r) => Date.parse(r.created_at)).filter((t) => !Number.isNaN(t));
-  const round = deriveRound(times, resets, serverNow());
-  return { round, rows, lastResetAt: resets };
+  const round = deriveRound(times, lastResetAt);
+  return { round, rows, lastResetAt, resetsAvailable: available };
 }
 
-/** Horário do último reinício manual, ou null. */
+/**
+ * Último reinício do ranking.
+ * @returns {Promise<{at:number|null, available:boolean}>}
+ *   available = false quando a tabela ainda não existe no projeto
+ */
 export async function fetchLastReset() {
   try {
     const rows = await get(RESETS_TABLE, '?select=at&order=at.desc&limit=1');
-    return rows.length ? Date.parse(rows[0].at) : null;
+    return { at: rows.length ? Date.parse(rows[0].at) : null, available: true };
   } catch (e) {
-    // tabela ainda não criada (ver sql/migracao-rodadas.sql): segue sem
-    // reinício manual, que é exatamente o comportamento anterior
-    if (e.status === 404 || e.status === 400) return null;
+    // tabela ainda não criada: ver sql/migracao-rodadas.sql
+    if (e.status === 404 || e.status === 400) return { at: null, available: false };
     throw e;
   }
 }

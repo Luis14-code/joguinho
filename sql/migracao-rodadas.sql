@@ -1,13 +1,13 @@
 -- ============================================================================
--- MIGRAÇÃO — rodada que começa na primeira jogada + botão de zerar
+-- MIGRAÇÃO — botão de zerar o ranking
 -- ----------------------------------------------------------------------------
 -- Rode este arquivo no SQL Editor do Supabase se você já tinha criado a tabela
 -- marsops_scores pelo schema.sql antigo. Quem for configurar do zero não
 -- precisa dele: o schema.sql atual já cria tudo.
 --
--- O que muda: a rodada deixou de ser uma fatia fixa do relógio. Agora ela
--- começa na primeira jogada e dura `roundMinutes` (config.js). O painel também
--- ganhou um botão de zerar o ranking na hora, que grava um marcador aqui.
+-- O que muda: a rodada deixou de ser uma fatia fixa do relógio e passou a
+-- valer até o docente zerar o ranking pelo botão do painel, que grava um
+-- marcador aqui.
 --
 -- Nada é apagado: zerar o ranking só move o corte para frente. As pontuações
 -- antigas continuam no banco para consulta.

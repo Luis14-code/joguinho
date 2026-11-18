@@ -1,14 +1,12 @@
 /* ============================================================================
-   RELÓGIO DA RODADA (cabeçalho do jogo)
+   ESTADO DA RODADA (cabeçalho do jogo)
    ----------------------------------------------------------------------------
-   Busca a rodada corrente no banco de tempos em tempos e, entre uma busca e
-   outra, só recalcula o tempo restante com o relógio do servidor. Assim o
-   contador anda suave sem martelar a API.
+   A rodada não tem prazo: vale até o docente zerar o ranking pelo painel. Aqui
+   o jogo só informa se a disputa já está valendo e desde quando.
    ========================================================================== */
 
-import { fetchRoundState, isConfigured, serverNow } from '../net/leaderboard.js';
-import { formatCountdown } from '../net/rounds.js';
-import { RANKING_CONFIG } from '../../config.js';
+import { fetchRoundState, isConfigured } from '../net/leaderboard.js';
+import { hhmm } from '../net/rounds.js';
 
 const REFETCH_MS = 30000;
 
@@ -41,30 +39,21 @@ function paint() {
     return;
   }
   if (!round || round.state !== 'running') {
-    el.textContent = `Ranking zerado · ${RANKING_CONFIG.roundMinutes} min começam na próxima jogada`;
-    el.classList.add('idle');
-    return;
-  }
-
-  const left = round.endsAt - serverNow();
-  if (left <= 0) {
-    // venceu: a próxima jogada abre rodada nova
-    el.textContent = `Rodada encerrada · ${RANKING_CONFIG.roundMinutes} min começam na próxima jogada`;
+    el.textContent = 'Ranking zerado · sua jogada abre a rodada';
     el.classList.add('idle');
     return;
   }
   el.classList.remove('idle');
-  el.textContent = `Rodada em curso · zera em ${formatCountdown(left)}`;
+  el.textContent = `Rodada em disputa desde ${hhmm(round.startedAt)}`;
 }
 
 export function startRoundClock() {
   paint();
   refreshRound().then(paint);
-  setInterval(paint, 1000);
   setInterval(() => refreshRound().then(paint), REFETCH_MS);
 }
 
-/** Usada logo após enviar uma pontuação, para o contador reagir na hora. */
+/** Usada logo após enviar uma pontuação, para o cabeçalho reagir na hora. */
 export async function refreshRoundNow() {
   await refreshRound();
   paint();
