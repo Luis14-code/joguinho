@@ -124,7 +124,7 @@ python -m http.server 8765
 
 Depois abra <http://127.0.0.1:8765/index.html>.
 
-Painel de ranking: <http://127.0.0.1:8765/ranking.html?k=comando-central>
+Painel de ranking: `http://127.0.0.1:8765/ranking.html?k=SUA-SENHA`
 Para conferir o layout do painel sem banco nenhum, acrescente `&demo=1`.
 
 Em `localhost`, o jogo expõe `window.__mars` no console (`state`, `stepScene`,
@@ -172,8 +172,9 @@ tudo, use o painel do Supabase.
 
 ### Trocar a senha do painel
 
-O `config.js` guarda o SHA-256 da senha (padrão: `comando-central`). Para
-trocar, gere o hash da senha nova no console do navegador (F12):
+O `config.js` guarda apenas o SHA-256 da senha — o texto dela não fica no
+repositório. Para trocar, gere o hash da senha nova no console do navegador
+(F12):
 
 ```js
 crypto.subtle.digest('SHA-256', new TextEncoder().encode('MINHA-SENHA'))

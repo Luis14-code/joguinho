@@ -32,9 +32,9 @@ export const RANKING_CONFIG = {
 
   /**
    * Senha do painel de ranking, em SHA-256 (hex).
-   * O padrão abaixo corresponde a: comando-central
+   * A senha em texto não fica no repositório: guarde-a com você.
    *
-   * Para trocar, gere o hash da sua senha. No navegador (F12 → Console):
+   * Para trocar, gere o hash da senha nova. No navegador (F12 → Console):
    *   crypto.subtle.digest('SHA-256', new TextEncoder().encode('SUA-SENHA'))
    *     .then(b => console.log([...new Uint8Array(b)]
    *       .map(x => x.toString(16).padStart(2,'0')).join('')));
@@ -42,7 +42,7 @@ export const RANKING_CONFIG = {
    * Isto é uma cortina para a turma não abrir o painel por curiosidade, não um
    * cofre: em site estático qualquer segredo no cliente é legível.
    */
-  rankingPasswordHash: 'f891e8b7efe31e32381996ccdd99532e983a3809b986af71f31e8c9350b62380',
+  rankingPasswordHash: 'a03123164d096c43cc01a6e50400fae358953e84e0412c911c49827f07677549',
 
   /** Intervalo de auto-atualização do painel de ranking, em segundos. */
   refreshSeconds: 15,
